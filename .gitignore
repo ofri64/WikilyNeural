@@ -108,3 +108,6 @@ venv.bak/
 
 # ignore original paper folder
 wikily_original_utils
+
+# ignore labeld data
+labeled_data
