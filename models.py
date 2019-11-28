@@ -20,8 +20,8 @@ class BiLSTM(nn.Module):
 
     def forward(self, x: torch.tensor) -> torch.tensor:
         embeddings = self.embedding(x)
-        hidden, _ = self.bi_lstm(embeddings)  # hidden is of shape (seq, batch, 2 * hidden_dim)
-        hidden = hidden.permute(1, 0, 2)  # transpose to Batch, Sequence, Features
+        hidden, _ = self.bi_lstm(embeddings)  # hidden is of shape (batch, seq, 2 * hidden_dim)
         y_hat = self.linear(hidden)
+        y_hat = y_hat.permute(0, 2, 1)  # transpose to Batch, Features, Sequence (needed for CE loss)
 
         return y_hat
