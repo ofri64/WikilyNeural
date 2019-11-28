@@ -13,6 +13,12 @@ class TokenMapper(object):
         self.label_to_idx = {}
         self.idx_to_label = {}
 
+    def get_tokens_dim(self):
+        return len(self.token_to_idx)
+
+    def get_labels_dim(self):
+        return len(self.label_to_idx)
+
     def create_mapping(self, filepath: str) -> None:
         words = set()
         labels = set()
