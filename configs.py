@@ -59,3 +59,21 @@ class BiLSTMConfig(ModelConfig):
         if config_dict is None:
             self.embedding_dim = embedding_dim
             self.hidden_dim = hidden_dim
+
+
+class TrainingConfig(BaseConfig):
+    """
+    Configuration class to store training and data loading configurations.
+    """
+    def __init__(self, config_dict=None, batch_size: int = 16, num_workers: int = 12,
+                 device: str = "cpu", num_epochs: int = 5, learning_rate: float = 1e-4,
+                 print_step: int = 500):
+        super().__init__(config_dict)
+
+        if config_dict is None:
+            self.batch_size = batch_size
+            self.num_workers = num_workers
+            self.device = device
+            self.num_epochs = num_epochs
+            self.learning_rate = learning_rate
+            self.print_step = print_step
