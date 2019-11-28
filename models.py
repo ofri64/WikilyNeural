@@ -15,7 +15,7 @@ class BiLSTM(nn.Module):
 
         # layers
         self.embedding = nn.Embedding(self.tokens_dim, self.embedding_dim, padding_idx=self.padding_index)
-        self.bi_lstm = nn.LSTM(input_size=self.embedding_dim, hidden_size=self.hidden_size, bidirectional=True, batch_first=True)
+        self.bi_lstm = nn.LSTM(input_size=self.embedding_dim, hidden_size=self.hidden_dim, bidirectional=True, batch_first=True)
         self.linear = nn.Linear(in_features=2 * self.hidden_dim, out_features=self.labels_dim)
 
     def forward(self, x: torch.tensor) -> torch.tensor:

@@ -14,19 +14,19 @@ class TokenMapper(object):
         self.label_to_idx = {}
         self.idx_to_label = {}
 
-    def get_tokens_dim(self):
+    def get_tokens_dim(self) -> int:
         return len(self.token_to_idx)
 
-    def get_labels_dim(self):
+    def get_labels_dim(self) -> int:
         return len(self.label_to_idx)
 
     def create_mapping(self, filepath: str) -> None:
         words = set()
         labels = set()
 
-        with open(filepath, "r") as f:
+        with open(filepath, "r", encoding="utf8") as f:
             for line in f:
-                if line != "" and not line.startswith("#"):
+                if line != "\n" and not line.startswith("#"):
                     line_tokens = line.split("\t")
                     word = line_tokens[1]
                     label = line_tokens[3]
@@ -43,14 +43,15 @@ class TokenMapper(object):
             self.idx_to_label[0] = padding_str
 
         # start index will be different if index 0 marked already as padding
-        start_index = len(self.token_to_idx)
+        word_start_index = len(self.token_to_idx)
+        label_start_index = len(self.label_to_idx)
 
         # transform token to indices
-        for index, word in enumerate(words, start_index):
+        for index, word in enumerate(words, word_start_index):
             self.token_to_idx[word] = index
             self.idx_to_token[index] = word
 
-        for index, label in enumerate(labels, start_index):
+        for index, label in enumerate(labels, label_start_index):
             self.label_to_idx[label] = index
             self.idx_to_label[index] = label
 
@@ -70,11 +71,11 @@ class SupervisedDataset(data.Dataset):
     def _load_file(self) -> None:
         curr_sent = []
         curr_labels = []
-        with open(self.filepath, "r") as f:
+        with open(self.filepath, "r", encoding="utf8") as f:
             for line in f:
                 if line.startswith("#"):  # comment rows
                     continue
-                if line == "":  # marks end of sentence
+                if line == "\n":  # marks end of sentence
                     self.samples.append(curr_sent)
                     self.labels.append(curr_labels)
                     # clear before reading next sentence
@@ -82,7 +83,7 @@ class SupervisedDataset(data.Dataset):
                     curr_labels = []
 
                 else:  # line for word in a sentence
-                    tokens = tokens.split("\t")
+                    tokens = line.split("\t")
                     word, label = tokens[1], tokens[3]
                     curr_sent.append(word)
                     curr_labels.append(label)

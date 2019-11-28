@@ -24,7 +24,7 @@ class ModelTrainer(object):
 
         # model, loss and optimizer
         model = self.model
-        optimizer = torch.optim.Adam(model.train_params, lr=learning_rate)
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
         # create data loaders
         train_config_dict = {"batch_size": batch_size, "num_workers": num_workers}
