@@ -1,14 +1,18 @@
 import torch
 import torch.utils.data as data
 
+PADD = "PADD"
+UNK = "UNK"
+
 
 class TokenMapper(object):
     """
     Class for mapping discrete tokens in a training set
     to indices and back
     """
-    def __init__(self, with_padding: bool = True):
+    def __init__(self, min_frequency: int, with_padding: bool = True):
         self.with_padding = with_padding
+        self.min_frequency = min_frequency
         self.token_to_idx = {}
         self.idx_to_token = {}
         self.label_to_idx = {}
@@ -20,8 +24,31 @@ class TokenMapper(object):
     def get_labels_dim(self) -> int:
         return len(self.label_to_idx)
 
-    def create_mapping(self, filepath: str) -> None:
+    def _init_mappings(self) -> None:
+        if self.with_padding:
+            self.token_to_idx[PADD] = 0
+            self.token_to_idx[UNK] = 1
+            self.idx_to_token[0] = PADD
+            self.idx_to_token[1] = UNK
+
+            self.label_to_idx[PADD] = 0
+            self.idx_to_label[0] = PADD
+
+        else:
+            self.token_to_idx[UNK] = 0
+            self.idx_to_token[0] = UNK
+
+    def _remove_non_frequent(self, words_frequencies) -> set:
+        # remove word below min_frequency
         words = set()
+        for word, frequency in words_frequencies.items():
+            if frequency >= self.min_frequency:
+                words.add(word)
+
+        return words
+
+    def create_mapping(self, filepath: str) -> None:
+        words_frequencies = {}
         labels = set()
 
         with open(filepath, "r", encoding="utf8") as f:
@@ -31,16 +58,14 @@ class TokenMapper(object):
                     word = line_tokens[1]
                     label = line_tokens[3]
 
-                    words.add(word)
+                    words_frequencies[word] = words_frequencies.get(word, 0) + 1
                     labels.add(label)
 
-        # create mappings
-        if self.with_padding:
-            padding_str = "PADD"
-            self.token_to_idx[padding_str] = 0
-            self.idx_to_token[0] = padding_str
-            self.label_to_idx[padding_str] = 0
-            self.idx_to_label[0] = padding_str
+        # remove word below min_frequency
+        words = self._remove_non_frequent(words_frequencies)
+
+        # init mappings with padding and unknown indices
+        self._init_mappings()
 
         # start index will be different if index 0 marked already as padding
         word_start_index = len(self.token_to_idx)
@@ -101,8 +126,9 @@ class SupervisedDataset(data.Dataset):
             self._load_file()
 
         # retrieve sample and transform from tokens to indices
+        unknown_index = self.mapper.token_to_idx[UNK]
         sent_tokens, sent_labels = self.samples[item_idx], self.labels[item_idx]
-        sent_indices = [self.mapper.token_to_idx[word] for word in sent_tokens]
+        sent_indices = [self.mapper.token_to_idx.get(word, unknown_index) for word in sent_tokens]
         labels_indices = [self.mapper.label_to_idx[label] for label in sent_labels]
 
         # create tensors

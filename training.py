@@ -1,7 +1,5 @@
 from pathlib import Path
-import torch
 import torch.nn as nn
-from torch.utils import data
 from models import BiLSTM
 from datasets import TokenMapper, SupervisedDataset
 from configs import BiLSTMConfig, TrainingConfig
@@ -18,7 +16,7 @@ if __name__ == '__main__':
     dev_path = data_dir / "en_ewt-ud-dev.conllu"
 
     # create mapper and Pytorch's dataset objects
-    mapper = TokenMapper()
+    mapper = TokenMapper(min_frequency=5)
     mapper.create_mapping(train_path)
     train_dataset = SupervisedDataset(train_path, mapper)
     # dev_dataset = SupervisedDataset(dev_path, mapper)
