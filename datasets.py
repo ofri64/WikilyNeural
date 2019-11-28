@@ -7,7 +7,8 @@ class TokenMapper(object):
     Class for mapping discrete tokens in a training set
     to indices and back
     """
-    def __init__(self):
+    def __init__(self, with_padding: bool = True):
+        self.with_padding = with_padding
         self.token_to_idx = {}
         self.idx_to_token = {}
         self.label_to_idx = {}
@@ -34,11 +35,22 @@ class TokenMapper(object):
                     labels.add(label)
 
         # create mappings
-        for index, word in enumerate(words):
+        if self.with_padding:
+            padding_str = "PADD"
+            self.token_to_idx[padding_str] = 0
+            self.idx_to_token[0] = padding_str
+            self.label_to_idx[padding_str] = 0
+            self.idx_to_label[0] = padding_str
+
+        # start index will be different if index 0 marked already as padding
+        start_index = len(self.token_to_idx)
+
+        # transform token to indices
+        for index, word in enumerate(words, start_index):
             self.token_to_idx[word] = index
             self.idx_to_token[index] = word
 
-        for index, label in enumerate(labels):
+        for index, label in enumerate(labels, start_index):
             self.label_to_idx[label] = index
             self.idx_to_label[index] = label
 
