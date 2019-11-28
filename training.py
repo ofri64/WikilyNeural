@@ -18,7 +18,7 @@ if __name__ == '__main__':
     # create mapper and Pytorch's dataset objects
     mapper = TokenMapper(min_frequency=5)
     mapper.create_mapping(train_path)
-    train_dataset = SupervisedDataset(train_path, mapper)
+    train_dataset = SupervisedDataset(train_path, mapper, sequence_len=32)
     # dev_dataset = SupervisedDataset(dev_path, mapper)
 
     # create model
