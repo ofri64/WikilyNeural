@@ -4,19 +4,31 @@ from datasets import TokenMapper
 from configs import BiLSTMConfig
 
 
-class BiLSTM(nn.Module):
+class BaseModel(nn.Module):
+
+    def serialize_model(self) -> dict:
+        return self.state_dict()
+
+    def deserialize_model(self, model_state: dict) -> None:
+        self.load_state_dict(model_state)
+
+
+class BiLSTM(BaseModel):
+
     def __init__(self, config: BiLSTMConfig, mapper: TokenMapper):
         super().__init__()
-        self.embedding_dim = config.embedding_dim
-        self.tokens_dim = mapper.get_tokens_dim()
-        self.labels_dim = mapper.get_labels_dim()
-        self.hidden_dim = config.hidden_dim
-        self.padding_index = 0 if mapper.with_padding else None
+        self.config = config
+        self.mapper = mapper
+        embedding_dim = config.embedding_dim
+        tokens_dim = mapper.get_tokens_dim()
+        labels_dim = mapper.get_labels_dim()
+        hidden_dim = config.hidden_dim
+        padding_index = 0 if mapper.with_padding else None
 
         # layers
-        self.embedding = nn.Embedding(self.tokens_dim, self.embedding_dim, padding_idx=self.padding_index)
-        self.bi_lstm = nn.LSTM(input_size=self.embedding_dim, hidden_size=self.hidden_dim, bidirectional=True, batch_first=True)
-        self.linear = nn.Linear(in_features=2 * self.hidden_dim, out_features=self.labels_dim)
+        self.embedding = nn.Embedding(tokens_dim, embedding_dim, padding_idx=padding_index)
+        self.bi_lstm = nn.LSTM(input_size=embedding_dim, hidden_size=hidden_dim, bidirectional=True, batch_first=True)
+        self.linear = nn.Linear(in_features=2 * hidden_dim, out_features=labels_dim)
 
     def forward(self, x: torch.tensor) -> torch.tensor:
         embeddings = self.embedding(x)
