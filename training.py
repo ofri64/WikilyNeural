@@ -1,9 +1,9 @@
 from pathlib import Path
 import torch.nn as nn
-from models import BiLSTM
-from datasets import TokenMapper, SupervisedDataset
+from models import BiLSTM, TokenMapper
+from datasets import SupervisedDataset
 from configs import BiLSTMConfig, TrainingConfig
-from trainers import ModelTrainer
+from trainers_and_predictors import ModelTrainer
 
 
 if __name__ == '__main__':
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     mapper = TokenMapper(min_frequency=5)
     mapper.create_mapping(train_path)
     train_dataset = SupervisedDataset(train_path, mapper, sequence_len=32)
-    # dev_dataset = SupervisedDataset(dev_path, mapper)
+    dev_dataset = SupervisedDataset(dev_path, mapper, sequence_len=32)
 
     # create model
     bi_lstm_config = BiLSTMConfig().from_json_file(configs_dir / "BiLSTM_config.json")
@@ -29,4 +29,4 @@ if __name__ == '__main__':
     train_config = TrainingConfig().from_json_file(configs_dir / "training_config.json")
     loss_function = nn.CrossEntropyLoss(ignore_index=0)  # index 0 is used for padding
     trainer = ModelTrainer(model, train_config, loss_function)
-    trainer.train(train_dataset)
+    trainer.train(train_dataset, dev_dataset)

@@ -67,7 +67,7 @@ class TrainingConfig(BaseConfig):
     """
     def __init__(self, config_dict=None, batch_size: int = 16, num_workers: int = 12,
                  device: str = "cpu", num_epochs: int = 5, learning_rate: float = 1e-4,
-                 print_step: int = 500, checkpoints_path: str = "checkpoints"):
+                 print_step: int = 500, checkpoints_path: str = "checkpoints", checkpoint_step: int = 10):
         super().__init__(config_dict)
 
         if config_dict is None:
@@ -78,3 +78,4 @@ class TrainingConfig(BaseConfig):
             self.learning_rate = learning_rate
             self.print_step = print_step
             self.checkpoints_path = checkpoints_path
+            self.checkpoints_step = checkpoint_step
