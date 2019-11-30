@@ -111,3 +111,6 @@ wikily_original_utils
 
 # ignore labeld data
 labeled_data
+
+# ignore checkpoints folder
+checkpoints
