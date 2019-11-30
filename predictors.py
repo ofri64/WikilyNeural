@@ -31,7 +31,7 @@ class BiLSTMGreedyInferer(BaseInferer):
 
     def _infer_batch_output(self, model_output: torch.tensor, actual_lengths: torch.tensor) -> list:
         idx_to_label = self.mapper.idx_to_label
-        batch_size = self.config.batch_size
+        batch_size = model_output.size()[0]
         model_predictions = []
 
         _, predictions = torch.max(model_output, dim=1)
