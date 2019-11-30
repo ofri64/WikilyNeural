@@ -1,5 +1,6 @@
 import torch
 import torch.utils.data as data
+from mappers import TokenMapper, PADD, UNK
 
 PADD = "PADD"
 UNK = "UNK"

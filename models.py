@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from datasets import TokenMapper
 from configs import BiLSTMConfig
+from mappers import TokenMapper
 
 
 class BaseModel(nn.Module):
