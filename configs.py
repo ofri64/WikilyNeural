@@ -79,3 +79,14 @@ class TrainingConfig(BaseConfig):
             self.print_step = print_step
             self.checkpoints_path = checkpoints_path
             self.checkpoints_step = checkpoint_step
+
+
+class InferenceConfig(BaseConfig):
+
+    def __int__(self, config_dict=None, batch_size: int = 16, num_workers: int = 12, device: str = "cpu"):
+        super().__init__(config_dict)
+
+        if config_dict is None:
+            self.batch_size = batch_size
+            self.num_workers = num_workers
+            self.device = device
