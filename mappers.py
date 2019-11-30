@@ -7,7 +7,7 @@ class TokenMapper(object):
     Class for mapping discrete tokens in a training set
     to indices and back
     """
-    def __init__(self, min_frequency: int, with_padding: bool = True):
+    def __init__(self, min_frequency: int = 0, with_padding: bool = True):
         self.with_padding = with_padding
         self.min_frequency = min_frequency
         self.token_to_idx = {}
@@ -25,13 +25,18 @@ class TokenMapper(object):
             "idx_to_label": self.idx_to_label
         }
 
-    def deserialize(self, serialized_mapper: dict) -> None:
-        self.with_padding = serialized_mapper["with_padding"]
-        self.min_frequency = serialized_mapper["min_frequency"]
-        self.token_to_idx = serialized_mapper["token_to_idx"]
-        self.label_to_idx = serialized_mapper["label_to_idx"]
-        self.idx_to_token = serialized_mapper["idx_to_token"]
-        self.idx_to_label = serialized_mapper["idx_to_label"]
+    @classmethod
+    def deserialize(cls, serialized_mapper: dict):
+        mapper = cls()
+
+        mapper.with_padding = serialized_mapper["with_padding"]
+        mapper.min_frequency = serialized_mapper["min_frequency"]
+        mapper.token_to_idx = serialized_mapper["token_to_idx"]
+        mapper.label_to_idx = serialized_mapper["label_to_idx"]
+        mapper.idx_to_token = serialized_mapper["idx_to_token"]
+        mapper.idx_to_label = serialized_mapper["idx_to_label"]
+
+        return mapper
 
     def get_tokens_dim(self) -> int:
         return len(self.token_to_idx)

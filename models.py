@@ -1,13 +1,25 @@
 import torch
 import torch.nn as nn
-from configs import BiLSTMConfig
+from configs import ModelConfig, BiLSTMConfig
 from mappers import TokenMapper
 
 
 class BaseModel(nn.Module):
 
+    def __init__(self, config: ModelConfig):
+        super().__init__()
+        self.config = config
+
     def serialize_model(self) -> dict:
-        return self.state_dict()
+        config_dict = self.config.to_dict()
+        state_dict = self.state_dict()
+
+        model_state = {
+            "state_dict": state_dict,
+            "config_dict": config_dict
+        }
+
+        return model_state
 
     def deserialize_model(self, model_state: dict) -> None:
         self.load_state_dict(model_state)
@@ -16,8 +28,7 @@ class BaseModel(nn.Module):
 class BiLSTM(BaseModel):
 
     def __init__(self, config: BiLSTMConfig, mapper: TokenMapper):
-        super().__init__()
-        self.config = config
+        super().__init__(config)
         self.mapper = mapper
         embedding_dim = config.embedding_dim
         tokens_dim = mapper.get_tokens_dim()
@@ -37,3 +48,25 @@ class BiLSTM(BaseModel):
         y_hat = y_hat.permute(0, 2, 1)  # transpose to Batch, Features, Sequence (needed for CE loss)
 
         return y_hat
+
+    def serialize_model(self) -> dict:
+        model_state = super().serialize_model()
+        mapper_dict = self.mapper.serialize()
+
+        model_state["mapper_state"] = mapper_dict
+
+        return model_state
+
+    @classmethod
+    def deserialize_model(cls, model_state: dict):
+        state_dict: dict = model_state["state_dict"]
+        mapper_state: dict = model_state["mapper_state"]
+        config_dict: dict = model_state["config_dict"]
+
+        mapper = TokenMapper.deserialize(mapper_state)
+        config = BiLSTMConfig(config_dict)
+
+        model = cls(config, mapper)
+        model.load_state_dict(state_dict)
+
+        return model

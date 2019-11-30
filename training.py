@@ -3,7 +3,7 @@ import torch.nn as nn
 from models import BiLSTM, TokenMapper
 from datasets import SupervisedDataset
 from configs import BiLSTMConfig, TrainingConfig
-from trainers_and_predictors import ModelTrainer
+from trainers import ModelTrainer
 
 
 if __name__ == '__main__':

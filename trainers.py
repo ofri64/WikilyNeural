@@ -37,18 +37,33 @@ class ModelTrainer(object):
         # save data to disk
         torch.save(checkpoint_data, checkpoint_file)
 
-    def load_checkpoint(self, path_to_pth_file: str) -> None:
+    @classmethod
+    def load_checkpoint_for_training(cls, path_to_pth_file: str, uninitialized_model_class, loss_function):
         checkpoint_data = torch.load(path_to_pth_file)
 
         # extract checkpoint data components
-        serialized_model = checkpoint_data["serialized_model"]
-        train_config = checkpoint_data["train_config"]
-        current_epoch = checkpoint_data["epoch"]
+        serialized_model: dict = checkpoint_data["serialized_model"]
+        train_config_dict: dict = checkpoint_data["train_config"]
+        current_epoch: int = checkpoint_data["epoch"]
 
-        # load model
-        self.model.deserialize_model(serialized_model)
-        self.train_config.from_dict(train_config)
-        self.current_epoch = current_epoch
+        model: BaseModel = uninitialized_model_class.deserialize_model(serialized_model)
+        train_config: TrainingConfig = TrainingConfig(train_config_dict)
+
+        # create a new model trainer object
+        trainer = cls(model, train_config, loss_function)
+        trainer.current_epoch = current_epoch
+
+        return trainer
+
+    @staticmethod
+    def load_trained_model(path_to_pth_file: str,  uninitialized_model_class) -> BaseModel:
+        checkpoint_data = torch.load(path_to_pth_file)
+
+        # extract serialized_model and create a model object
+        serialized_model: dict = checkpoint_data["serialized_model"]
+        model: BaseModel = uninitialized_model_class.deserialize_model(serialized_model)
+
+        return model
 
     def train(self, train_dataset: data.Dataset, dev_dataset: data.Dataset = None):
         with_dev = dev_dataset is not None
