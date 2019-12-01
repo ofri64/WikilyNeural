@@ -44,7 +44,7 @@ class TokenMapper(object):
     def get_labels_dim(self) -> int:
         return len(self.label_to_idx)
 
-    def _init_mappings(self) -> None:
+    def _init_mapping_with_unk_padding(self) -> None:
         if self.with_padding:
             self.token_to_idx[PADD] = 0
             self.token_to_idx[UNK] = 1
@@ -85,7 +85,7 @@ class TokenMapper(object):
         words = self._remove_non_frequent(words_frequencies)
 
         # init mappings with padding and unknown indices
-        self._init_mappings()
+        self._init_mapping_with_unk_padding()
 
         # start index will be different if index 0 marked already as padding
         word_start_index = len(self.token_to_idx)
