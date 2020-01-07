@@ -1,76 +1,71 @@
+from typing import Tuple
+
 import torch
-from torch.utils import data
-from configs import InferenceConfig
-from models import BiLSTM
+
+from mappers import BaseMapper, BaseMapperWithPadding
 
 
-class BaseInferer(object):
+class BasePredictor(object):
 
-    def __init__(self, config: InferenceConfig):
-        self.config = config
+    def __init__(self, mapper: BaseMapper):
+        self.mapper = mapper
 
-    def infer_text_sample(self, tokenized_text: list):
-        return NotImplementedError("A class deriving from BaseInferer must implement this method")
+    def infer_model_outputs(self, model_outputs: torch.tensor) -> torch.tensor:
+        raise NotImplementedError("A class deriving from BasePredictor must implement infer_model_outputs method")
 
-    def infer_text_sample_with_gold_labels(self, tokenized_text: list, gold_labels: list):
-        return NotImplementedError("A class deriving from BaseInferer must implement this method")
+    def infer_sample(self, model: torch.nn.Module, tokens_indices: torch.tensor):
+        model_outputs = model(tokens_indices)
+        raise self.infer_model_outputs(model_outputs)
 
-    def infer_dataset(self, dataset: data.Dataset):
-        return NotImplementedError("A class deriving from BaseInferer must implement this method")
+    def infer_raw_sample(self, model: torch.nn.Module, raw_sample: list):
+        sample_tokens = []
+        for sample in raw_sample:
+            token_indices = [self.mapper.get_token_idx(token) for token in sample]
+            sample_tokens.append(token_indices)
 
-    def compute_accuracy(self, dataset: data.Dataset):
-        return NotImplementedError("A class deriving from BaseInferer must implement this method")
+        sample_tokens = torch.tensor(sample_tokens)
+        return self.infer_sample(model, sample_tokens)
+
+    def infer_model_outputs_with_gold_labels(self, model_outputs: torch.tensor, labels: torch.tensor) -> Tuple[int, int]:
+        num_correct: int
+        num_predictions: int
+
+        num_predictions = len(labels)
+        predictions: torch.tensor = self.infer_model_outputs(model_outputs)
+        correct_predictions: torch.tensor = (predictions == labels).type(torch.int64)
+        num_correct = torch.sum(correct_predictions).item()
+
+        return num_correct, num_predictions
 
 
-class BiLSTMGreedyInferer(BaseInferer):
+class GreedyLSTMPredictor(BasePredictor):
+    def __init__(self, mapper: BaseMapperWithPadding):
+        super().__init__(mapper)
 
-    def __init__(self, config: InferenceConfig, model: BiLSTM):
-        super().__init__(config)
-        self.model = model
-        self.mapper = model.mapper
+    def infer_model_outputs(self, model_outputs: torch.tensor) -> torch.Tensor:
+        # dimension of model outputs is batch_size, num_features, sequence_length
+        # that is why we are using max on dimension 1 - the features dimension
+        _, labels_tokens = torch.max(model_outputs, dim=1)
+        return labels_tokens
 
-    def _infer_batch_output(self, model_output: torch.tensor, actual_lengths: torch.tensor) -> list:
-        idx_to_label = self.mapper.idx_to_label
-        batch_size = model_output.size()[0]
-        model_predictions = []
+    def infer_model_outputs_with_gold_labels(self, model_outputs: torch.tensor, labels: torch.tensor) -> Tuple[int, int]:
+        num_correct: int
+        num_predictions: int
 
-        _, predictions = torch.max(model_output, dim=1)
-        for i in range(batch_size):
-            sample_size_without_padding = actual_lengths[i]
-            prediction_tokens = predictions[i]
+        self.mapper: BaseMapperWithPadding
+        padding_symbol = self.mapper.get_padding_symbol()
+        label_padding_index = self.mapper.get_label_idx(padding_symbol)
 
-            # cut predictions belonging to padding and move to cpu
-            prediction_tokens = prediction_tokens[:sample_size_without_padding]
-            prediction_tokens = prediction_tokens.cpu().numpy()
-            labels = [idx_to_label[label_token] for label_token in prediction_tokens]
-            model_predictions.append(labels)
+        # create a mask to distinguish padding from real tokens
+        padding_mask = (labels != label_padding_index).type(torch.int64)
+        num_predictions = torch.sum(padding_mask).item()
 
-        return model_predictions
+        # compute prediction (greedy, argmax in each time sequence)
+        predictions = self.infer_model_outputs(model_outputs)
 
-    def _get_samples_length_without_padding(self, x: torch.tensor) -> torch.tensor:
-        padding_index: int = self.mapper.token_to_idx["PADD"]
-        mask: torch.tensor = x != padding_index
-        samples_length = torch.sum(mask, dim=1)
+        # compare between predictions and labels, masking out padding
+        correct_predictions_raw = (predictions == labels).type(torch.int64)
+        correct_prediction_no_padding = correct_predictions_raw * padding_mask
+        num_correct = torch.sum(correct_prediction_no_padding).item()
 
-        return samples_length
-
-    def infer_dataset(self, dataset: data.Dataset) -> list:
-        model_predictions = []
-
-        dataset_loader = data.DataLoader(dataset, batch_size=self.config.batch_size, num_workers=self.config.num_workers)
-        device = torch.device(self.config.device)
-        model = self.model.to(device)
-
-        with torch.no_grad():
-            model.eval()
-
-            for sample in dataset_loader:
-                x, _ = sample
-                x = x.to(device)
-                output = model(x)
-
-                samples_length = self._get_samples_length_without_padding(x)
-                y_pred = self._infer_batch_output(output, samples_length)
-                model_predictions += y_pred
-
-        return model_predictions
+        return num_correct, num_predictions

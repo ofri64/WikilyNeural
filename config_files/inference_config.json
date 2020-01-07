@@ -1,5 +1,5 @@
 {
-	"batch_size": 16
+	"batch_size": 600
 	,"num_workers": 12
 	,"device": "cuda"
 }
